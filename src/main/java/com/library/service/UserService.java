@@ -2,7 +2,11 @@ package com.library.service;
 
 import com.library.model.dto.UserDTO;
 import com.library.model.dto.request.UpdateProfileRequest;
+import com.library.model.entity.Favorite;
+import com.library.model.entity.User;
 import com.library.model.vo.UserStatsVO;
+import com.library.repository.BookRepository;
+import com.library.repository.FavoriteRepository;
 import com.library.repository.UserRepository;
 import com.library.exception.BadRequestException;
 import com.library.exception.ResourceNotFoundException;
@@ -26,6 +30,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FavoriteRepository favoriteRepository; // 新增：注入收藏仓库
+    private final BookRepository bookRepository; // 新增：注入图书仓库
     private static final String AVATAR_UPLOAD_PATH = "uploads/avatars/";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATETIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -43,11 +49,9 @@ public class UserService {
      */
     @Transactional
     public UserDTO updateProfile(Long userId, UpdateProfileRequest request) {
-        // 1. 通过userId查询用户
-        var user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
 
-        // 2. 逐项更新字段
         if (request.getNickname() != null) {
             user.setNickname(request.getNickname());
         }
@@ -78,7 +82,7 @@ public class UserService {
         }
 
         user.setUpdatedAt(LocalDateTime.now());
-        var updatedUser = userRepository.save(user);
+        User updatedUser = userRepository.save(user);
         return convertToDTO(updatedUser);
     }
 
@@ -86,16 +90,14 @@ public class UserService {
      * 上传用户头像
      */
     public String uploadAvatar(Long userId, MultipartFile file) throws IOException {
-        var user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
 
-        // 校验文件类型
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
             throw new BadRequestException("请上传图片类型文件");
         }
 
-        // 保存文件
         File uploadDir = new File(AVATAR_UPLOAD_PATH);
         if (!uploadDir.exists()) {
             uploadDir.mkdirs();
@@ -107,7 +109,6 @@ public class UserService {
         String filePath = AVATAR_UPLOAD_PATH + fileName;
         file.transferTo(new File(filePath));
 
-        // 更新头像URL
         String avatarUrl = "/" + filePath;
         user.setAvatarUrl(avatarUrl);
         userRepository.save(user);
@@ -120,7 +121,7 @@ public class UserService {
      */
     @Transactional
     public void changePassword(Long userId, String oldPassword, String newPassword) {
-        var user = userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
 
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
@@ -132,7 +133,9 @@ public class UserService {
         userRepository.save(user);
     }
 
-    // 其他方法保持不变...
+    /**
+     * 获取用户订单列表
+     */
     public Map<String, Object> getUserOrders(Long userId, String status, int page, int limit) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
@@ -150,6 +153,9 @@ public class UserService {
         );
     }
 
+    /**
+     * 获取用户收藏列表
+     */
     public Map<String, Object> getUserWishlist(Long userId, int page, int limit) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
@@ -167,12 +173,56 @@ public class UserService {
         );
     }
 
+    /**
+     * 新增：添加图书到收藏（解决WishlistController调用报错）
+     */
+    @Transactional
+    public void addToWishlist(Long userId, Long bookId) {
+        // 验证用户存在
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("用户不存在");
+        }
+
+        // 验证图书存在
+        if (!bookRepository.existsById(bookId)) {
+            throw new ResourceNotFoundException("图书不存在");
+        }
+
+        // 检查是否已收藏
+        if (favoriteRepository.existsByUserIdAndBookId(userId, bookId)) {
+            throw new BadRequestException("该图书已在收藏列表中");
+        }
+
+        // 创建收藏记录
+        Favorite favorite = new Favorite();
+        favorite.setUserId(userId);
+        favorite.setBookId(bookId);
+        favorite.setCreatedAt(LocalDateTime.now());
+        favoriteRepository.save(favorite);
+    }
+
+    /**
+     * 新增：从收藏中移除图书（建议补充，与addToWishlist配套）
+     */
+    @Transactional
+    public void removeFromWishlist(Long userId, Long bookId) {
+        Favorite favorite = favoriteRepository.findByUserIdAndBookId(userId, bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("收藏记录不存在"));
+        favoriteRepository.delete(favorite);
+    }
+
+    /**
+     * 获取用户地址列表
+     */
     public List<?> getUserAddresses(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
         return List.of();
     }
 
+    /**
+     * 获取用户统计数据
+     */
     public UserStatsVO getUserStats(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
@@ -193,7 +243,6 @@ public class UserService {
         dto.setAvatarUrl(user.getAvatarUrl());
         dto.setGender(user.getGender());
 
-        // 格式化日期为字符串
         if (user.getBirthDate() != null) {
             dto.setBirthDate(user.getBirthDate().format(DATE_FORMAT));
         }

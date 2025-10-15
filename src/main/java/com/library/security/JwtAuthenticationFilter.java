@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 jwt = authHeader.substring(7);
                 // 从令牌中获取用户名（对应nodejs的verifyToken解析）
-                username = jwtTokenProvider.getUsernameFromJWT(jwt);
+                username = jwtTokenProvider.getUsernameFromToken(jwt);
             }
 
             // 如果令牌有效且未设置认证信息
