@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 
 /**
  * 用户地址实体类
- * 关键：规范字段命名+确保Lombok正确生成getter/setter
+ * 维护用户的收货地址信息，支持默认地址设置
  */
-@Data // 必须添加：Lombok注解，自动生成getter/setter/toString等
+@Data
 @Entity
 @Table(name = "user_addresses")
 public class UserAddress {
@@ -19,26 +19,24 @@ public class UserAddress {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "recipient_name", nullable = false)
+    @Column(name = "recipient_name", nullable = false, length = 50)
     private String recipientName;
 
-    @Column(name = "recipient_phone", nullable = false)
+    @Column(name = "recipient_phone", nullable = false, length = 20)
     private String recipientPhone;
 
-    @Column(name = "province", nullable = false)
+    @Column(name = "province", nullable = false, length = 20)
     private String province;
 
-    @Column(name = "city", nullable = false)
+    @Column(name = "city", nullable = false, length = 20)
     private String city;
 
-    @Column(name = "district", nullable = false)
+    @Column(name = "district", nullable = false, length = 20)
     private String district;
 
-    @Column(name = "detail_address", nullable = false)
+    @Column(name = "detail_address", nullable = false, length = 200)
     private String detailAddress;
 
-    // 核心修复1：字段命名为isDefault（符合JavaBean规范）
-    // Lombok会自动生成：setIsDefault()和isIsDefault()/getIsDefault()
     @Column(name = "is_default", nullable = false)
     private boolean isDefault;
 
@@ -59,12 +57,12 @@ public class UserAddress {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // 核心修复2：若Lombok失效，手动添加getter/setter（双保险）
-    public boolean isDefault() { // boolean类型的getter规范是isXxx()
+    // 手动补充isDefault的getter和setter，确保序列化和反序列化正确
+    public boolean isDefault() {
         return isDefault;
     }
 
-    public void setDefault(boolean isDefault) { // setter规范是setXxx()
+    public void setDefault(boolean isDefault) {
         this.isDefault = isDefault;
     }
 }

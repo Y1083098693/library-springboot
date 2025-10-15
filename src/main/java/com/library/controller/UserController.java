@@ -1,6 +1,6 @@
 package com.library.controller;
 
-import com.library.model.entity.User;
+import com.library.model.dto.UserDTO;
 import com.library.model.dto.request.ChangePasswordRequest;
 import com.library.model.dto.request.UpdateProfileRequest;
 import com.library.model.dto.response.MessageResponse;
@@ -40,31 +40,23 @@ public class UserController {
      */
     @GetMapping("/profile")
     public ResponseEntity<UserProfileResponse> getProfile(@CurrentUser UserDetails currentUser) {
-        // 1. 通过用户名查询用户（获取完整User对象）
-        User user = userRepository.findByUsername(currentUser.getUsername())
+        // 1. 通过用户名查询用户DTO
+        UserDTO userDTO = userService.getUserProfileByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
 
-        // 2. LocalDateTime转String（处理null值，避免空指针）
-        String birthDateStr = (user.getBirthDate() != null)
-                ? user.getBirthDate().format(DATE_FORMAT)
-                : null;
-        String createdAtStr = (user.getCreatedAt() != null)
-                ? user.getCreatedAt().format(DATETIME_FORMAT)
-                : null;
-
-        // 3. 构造响应：严格匹配UserProfileResponse的参数顺序
+        // 2. 构造响应：直接使用UserDTO数据
         UserProfileResponse response = new UserProfileResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getNickname(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getBio(),
-                user.getAvatarUrl(),
-                user.getGender(),
-                birthDateStr,
-                user.getPoints(),
-                createdAtStr
+                userDTO.getId(),
+                userDTO.getUsername(),
+                userDTO.getNickname(),
+                userDTO.getEmail(),
+                userDTO.getPhone(),
+                userDTO.getBio(),
+                userDTO.getAvatarUrl(),
+                userDTO.getGender(),
+                userDTO.getBirthDate(),
+                userDTO.getPoints(),
+                userDTO.getCreatedAt()
         );
         return ResponseEntity.ok(response);
     }
@@ -77,34 +69,26 @@ public class UserController {
             @CurrentUser UserDetails currentUser,
             @RequestBody UpdateProfileRequest request) {
 
-        // 1. 通过用户名查询userId（转为Long类型传给Service）
-        User user = userRepository.findByUsername(currentUser.getUsername())
+        // 1. 通过用户名查询用户
+        UserDTO userDTO = userService.getUserProfileByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
-        Long userId = user.getId();
 
-        // 2. 调用Service更新资料（传入Long类型userId）
-        User updatedUser = userService.updateProfile(userId, request);
+        // 2. 调用Service更新资料（传入DTO的userId）
+        UserDTO updatedUserDTO = userService.updateProfile(userDTO.getId(), request);
 
-        // 3. 格式化日期，构造响应
-        String birthDateStr = (updatedUser.getBirthDate() != null)
-                ? updatedUser.getBirthDate().format(DATE_FORMAT)
-                : null;
-        String createdAtStr = (updatedUser.getCreatedAt() != null)
-                ? updatedUser.getCreatedAt().format(DATETIME_FORMAT)
-                : null;
-
+        // 3. 直接使用DTO构造响应
         UserProfileResponse response = new UserProfileResponse(
-                updatedUser.getId(),
-                updatedUser.getUsername(),
-                updatedUser.getNickname(),
-                updatedUser.getEmail(),
-                updatedUser.getPhone(),
-                updatedUser.getBio(),
-                updatedUser.getAvatarUrl(),
-                updatedUser.getGender(),
-                birthDateStr,
-                updatedUser.getPoints(),
-                createdAtStr
+                updatedUserDTO.getId(),
+                updatedUserDTO.getUsername(),
+                updatedUserDTO.getNickname(),
+                updatedUserDTO.getEmail(),
+                updatedUserDTO.getPhone(),
+                updatedUserDTO.getBio(),
+                updatedUserDTO.getAvatarUrl(),
+                updatedUserDTO.getGender(),
+                updatedUserDTO.getBirthDate(),
+                updatedUserDTO.getPoints(),
+                updatedUserDTO.getCreatedAt()
         );
         return ResponseEntity.ok(response);
     }
@@ -117,11 +101,10 @@ public class UserController {
             @CurrentUser UserDetails currentUser,
             @RequestParam("avatar") MultipartFile file) throws IOException {
 
-        User user = userRepository.findByUsername(currentUser.getUsername())
+        UserDTO userDTO = userService.getUserProfileByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
-        String avatarUrl = userService.uploadAvatar(user.getId(), file);
+        String avatarUrl = userService.uploadAvatar(userDTO.getId(), file);
 
-        // 修复：第一个参数传true（成功），第二个传消息，第三个传头像URL（数据）
         return ResponseEntity.ok(new MessageResponse(true, "头像上传成功", avatarUrl));
     }
 
@@ -133,11 +116,10 @@ public class UserController {
             @CurrentUser UserDetails currentUser,
             @RequestBody ChangePasswordRequest request) {
 
-        User user = userRepository.findByUsername(currentUser.getUsername())
+        UserDTO userDTO = userService.getUserProfileByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
-        userService.changePassword(user.getId(), request.getOldPassword(), request.getNewPassword());
+        userService.changePassword(userDTO.getId(), request.getOldPassword(), request.getNewPassword());
 
-        // 修复：第一个参数传true（成功），第二个传消息（无数据，用2参数构造函数）
         return ResponseEntity.ok(new MessageResponse(true, "密码修改成功"));
     }
 
@@ -151,10 +133,10 @@ public class UserController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int limit) {
 
-        User user = userRepository.findByUsername(currentUser.getUsername())
+        UserDTO userDTO = userService.getUserProfileByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
         return ResponseEntity.ok(userService.getUserOrders(
-                user.getId(), // 传userId而非username
+                userDTO.getId(),
                 status,
                 page,
                 limit
@@ -170,10 +152,10 @@ public class UserController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int limit) {
 
-        User user = userRepository.findByUsername(currentUser.getUsername())
+        UserDTO userDTO = userService.getUserProfileByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
         return ResponseEntity.ok(userService.getUserWishlist(
-                user.getId(), // 传userId而非username
+                userDTO.getId(),
                 page,
                 limit
         ));
@@ -184,9 +166,9 @@ public class UserController {
      */
     @GetMapping("/addresses")
     public ResponseEntity<?> getAddresses(@CurrentUser UserDetails currentUser) {
-        User user = userRepository.findByUsername(currentUser.getUsername())
+        UserDTO userDTO = userService.getUserProfileByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
-        return ResponseEntity.ok(userService.getUserAddresses(user.getId())); // 传userId
+        return ResponseEntity.ok(userService.getUserAddresses(userDTO.getId()));
     }
 
     /**
@@ -194,8 +176,8 @@ public class UserController {
      */
     @GetMapping("/stats")
     public ResponseEntity<?> getStats(@CurrentUser UserDetails currentUser) {
-        User user = userRepository.findByUsername(currentUser.getUsername())
+        UserDTO userDTO = userService.getUserProfileByUsername(currentUser.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("用户不存在"));
-        return ResponseEntity.ok(userService.getUserStats(user.getId())); // 传userId
+        return ResponseEntity.ok(userService.getUserStats(userDTO.getId()));
     }
 }

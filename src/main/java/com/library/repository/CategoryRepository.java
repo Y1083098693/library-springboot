@@ -5,45 +5,34 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import com.library.model.entity.Category;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 分类数据访问层
+ * 提供分类相关的数据库操作方法
+ */
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
-    // 获取所有分类（用于导航栏）
-    @Query(value = "SELECT id, name, slug, description " +
-            "FROM categories " +
-            "WHERE is_active = 1 " +
-            "ORDER BY sort_order ASC, name ASC",
-            nativeQuery = true)
-    List<Map<String, Object>> findAllActive();
+    // 获取所有激活的分类（用于导航栏展示）
+    @Query("SELECT c FROM Category c WHERE c.isActive = true ORDER BY c.displayOrder ASC, c.name ASC")
+    List<Category> findAllActive();
 
-    // 根据slug获取单个分类详情
-    @Query(value = "SELECT id, name, slug, description " +
-            "FROM categories " +
-            "WHERE slug = :slug AND is_active = 1",
-            nativeQuery = true)
-    Optional<Map<String, Object>> findBySlug(@Param("slug") String slug);
+    // 根据slug获取单个激活的分类
+    @Query("SELECT c FROM Category c WHERE c.slug = :slug AND c.isActive = true")
+    Optional<Category> findBySlugAndActive(@Param("slug") String slug);
 
-    // 根据ID获取单个分类详情
-    @Query(value = "SELECT id, name, slug, description " +
-            "FROM categories " +
-            "WHERE id = :id AND is_active = 1",
-            nativeQuery = true)
-    Optional<Map<String, Object>> findByIdActive(@Param("id") Long id);
+    // 根据ID获取单个激活的分类
+    @Query("SELECT c FROM Category c WHERE c.id = :id AND c.isActive = true")
+    Optional<Category> findByIdAndActive(@Param("id") Long id);
 
     // 获取分类树形结构（包含父子关系）
-    @Query(value = "SELECT " +
-            "c1.id, " +
-            "c1.name, " +
-            "c1.slug, " +
-            "c1.description, " +
-            "c1.parent_id, " +
-            "c2.name as parent_name " +
-            "FROM categories c1 " +
-            "LEFT JOIN categories c2 ON c1.parent_id = c2.id " +
-            "WHERE c1.is_active = 1 " +
-            "ORDER BY c1.sort_order ASC, c1.name ASC",
-            nativeQuery = true)
-    List<Map<String, Object>> findCategoryTree();
+    @Query("SELECT c FROM Category c WHERE c.isActive = true ORDER BY c.displayOrder ASC, c.name ASC")
+    List<Category> findAllActiveForTree();
+
+    // 检查分类名称是否已存在（用于新增/修改时校验）
+    boolean existsByName(String name);
+
+    // 检查分类标识（slug）是否已存在（排除当前ID，用于修改时校验）
+    @Query("SELECT COUNT(c) > 0 FROM Category c WHERE c.slug = :slug AND c.id != :id")
+    boolean existsBySlugAndNotId(@Param("slug") String slug, @Param("id") Long id);
 }

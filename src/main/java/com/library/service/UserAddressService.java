@@ -106,19 +106,15 @@ public class UserAddressService {
         }
     }
 
-    // ------------------------------ 新增：getDefaultAddress方法（核心修复） ------------------------------
-    /**
-     * 获取用户默认地址（匹配Controller调用）
-     */
+    // ------------------------------ 新增：getDefaultAddress方法 ------------------------------
     @Transactional(readOnly = true)
     public UserAddressDTO getDefaultAddress(Long userId) {
-        // 调用Repository的findDefaultByUserId方法，查询默认地址
         UserAddress defaultAddress = userAddressRepository.findDefaultByUserId(userId)
                 .orElseThrow(() -> new ApiError(404, "用户暂无默认地址"));
         return convertToDTO(defaultAddress);
     }
 
-    // ------------------------------ 私有工具方法（保留） ------------------------------
+    // ------------------------------ 私有工具方法 ------------------------------
     private UserAddressDTO convertToDTO(UserAddress address) {
         UserAddressDTO dto = new UserAddressDTO();
         dto.setId(address.getId());
@@ -128,6 +124,7 @@ public class UserAddressService {
         dto.setCity(address.getCity());
         dto.setDistrict(address.getDistrict());
         dto.setDetailAddress(address.getDetailAddress());
+        // 这里调用的setIsDefault方法已在DTO中手动定义
         dto.setIsDefault(address.isDefault());
         dto.setCreatedAt(address.getCreatedAt().toString());
         dto.setUpdatedAt(address.getUpdatedAt().toString());

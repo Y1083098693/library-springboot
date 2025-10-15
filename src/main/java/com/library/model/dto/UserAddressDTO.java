@@ -1,22 +1,31 @@
 package com.library.model.dto;
 
 /**
- * 用户地址DTO（完全手动编写，不依赖Lombok）
+ * 用户地址DTO
+ * 用于用户地址信息的传输，与前端交互时使用
  */
 public class UserAddressDTO {
-    // 字段定义
     private Long id;
-    private String recipientName;
-    private String recipientPhone;
-    private String province;
-    private String city;
-    private String district;
-    private String detailAddress;
-    private boolean isDefault; // 核心字段：是否默认地址
-    private String createdAt;
-    private String updatedAt;
 
-    // 手动添加所有字段的getter和setter（重点：isDefault的setter）
+    private String recipientName;  // 收件人姓名
+
+    private String recipientPhone; // 收件人电话
+
+    private String province;       // 省份
+
+    private String city;           // 城市
+
+    private String district;       // 区县
+
+    private String detailAddress;  // 详细地址
+
+    private boolean isDefault;     // 是否为默认地址
+
+    private String createdAt;      // 创建时间（字符串格式，便于前端展示）
+
+    private String updatedAt;      // 更新时间（字符串格式，便于前端展示）
+
+    // 手动生成所有getter和setter
     public Long getId() {
         return id;
     }
@@ -73,12 +82,12 @@ public class UserAddressDTO {
         this.detailAddress = detailAddress;
     }
 
-    // 核心修复：手动实现isDefault的getter和setter
-    public boolean isDefault() { // boolean类型的getter用isXxx()
+    public boolean isDefault() {
         return isDefault;
     }
 
-    public void setIsDefault(boolean isDefault) { // 显式定义setIsDefault方法
+    // 关键修复：显式定义setIsDefault方法
+    public void setIsDefault(boolean isDefault) {
         this.isDefault = isDefault;
     }
 

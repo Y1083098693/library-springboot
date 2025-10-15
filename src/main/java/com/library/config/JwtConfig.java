@@ -10,7 +10,10 @@ public class JwtConfig {
     private String secretKey;
 
     @Value("${jwt.expiration}")
-    private long expirationTime; // 单位：毫秒（对应JWT_EXPIRES_IN=7d，即604800000毫秒）
+    private long expirationTime; // 访问令牌过期时间（毫秒）
+
+    @Value("${jwt.refresh-expiration}") // 需要在配置文件中添加此配置
+    private long refreshExpirationTime; // 刷新令牌过期时间（毫秒）
 
     public String getSecretKey() {
         return secretKey;
@@ -18,5 +21,10 @@ public class JwtConfig {
 
     public long getExpirationTime() {
         return expirationTime;
+    }
+
+    // 新增getter方法
+    public long getRefreshExpirationTime() {
+        return refreshExpirationTime;
     }
 }

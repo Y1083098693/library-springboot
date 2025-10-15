@@ -29,7 +29,7 @@ public class UserAddressController {
     @GetMapping
     @Operation(summary = "获取用户所有地址", description = "查询当前登录用户的所有收货地址列表")
     public ResponseEntity<ApiResponse<List<UserAddressDTO>>> getUserAddresses(Authentication authentication) {
-        Long userId = Long.valueOf(authentication.getName()); // 从JWT中获取用户ID
+        Long userId = Long.valueOf(authentication.getName());
         List<UserAddressDTO> addresses = userAddressService.getUserAddresses(userId);
         return ResponseEntity.ok(new ApiResponse<>(true, "地址列表获取成功", addresses));
     }
@@ -68,7 +68,7 @@ public class UserAddressController {
             @Valid @RequestBody CreateAddressRequest request) {
         Long userId = Long.valueOf(authentication.getName());
         UserAddressDTO newAddress = userAddressService.createAddress(userId, request);
-        return ResponseEntity.ok(new ApiResponse<>(true, "地址创建成功", newAddress));
+        return ResponseEntity.status(201).body(new ApiResponse<>(true, "地址创建成功", newAddress));
     }
 
     /**
